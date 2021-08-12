@@ -15,17 +15,33 @@ func main() {
 		log.Fatal("Failed to load aws configuration")
 	}
 
-	// mlService := services.NewMediaLiveService(cfg)
-	msService := services.NewMediaStoreService(cfg)
+	mlService := services.NewMediaLiveService(cfg)
+	// msService := services.NewMediaStoreService(cfg)
 
-	container, err := msService.DescribeContainer("ProgrammaticContainer")
+	// container, err := msService.DescribeContainer("ProgrammaticContainer")
 
-	if err != nil{
-		log.Println("Error fetching container info : ",err)
-	} else {
-		log.Println(*(container.Container.Endpoint))
-	}
+	// if err != nil{
+	// 	log.Println("Error fetching container info : ",err)
+	// } else {
+	// 	log.Println(*(container.Container.Endpoint))
+	// }
+
+	// ch,err := mlService.CreateChannel()
 	
+	// if err != nil {
+	// 	log.Fatal("Failed to create channel, error : ",err)
+	// } else {
+	// 	log.Println("Channel created : ",ch.Channel.Name)
+	// }
+
+
+	ch,err := mlService.DescribeChannel("8523755")//*(ch.Channel.Id))
+	
+	if err != nil {
+		log.Fatal("Failed to fetch the detail of the channel, error : ",err)
+	} else {
+		log.Printf("Channel Info :\n\t\t\tName : %v\n\t\t\tState : %v",*(ch.Name), ch.State)
+	}
 	// ch,err := ML.ListChannels(context.Background(),&medialive.ListChannelsInput{})
 	// if err != nil {
 	// 	log.Fatal("Failed to fetch the list of channels")
