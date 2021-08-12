@@ -1,33 +1,18 @@
 package services
 
 import (
-	"aws-golang-proto/utils"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/mediastore"
-	awsconfig "github.com/tkuchiki/aws-sdk-go-config"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/mediastore"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 )
 
 type mediaStoreServices struct {
-	MS *mediastore.MediaStore
+	MS *mediastore.Client
 }
 
-func NewMediaStoreService() *mediaStoreServices{
-	var cfg aws.Config
-
-	accessKey := utils.GetEnvWithKey("ACCESS_KEY")
-	secretKey := utils.GetEnvWithKey("SECRET_KEY")
-	region := utils.GetEnvWithKey("REGION")
-
-	cfg.Credentials = awsconfig.NewCredentials(awsconfig.Option{
-		AccessKey: accessKey,
-		SecretKey: secretKey,
-	})
-
-	mySession := session.Must(session.NewSession(&cfg))
+func NewMediaStoreService(config aws.Config) *mediaStoreServices{
 	return &mediaStoreServices{
-		MS:mediastore.New(mySession,aws.NewConfig().WithCredentials(cfg.Credentials).WithRegion(region)),
+		MS:mediastore.New(mediastore.Options{Credentials:config.Credentials,Region: endpoints.ApNortheast1RegionID}),
 	}
 }
 
@@ -36,5 +21,5 @@ type MediaStoreServices interface{
 }
 
 func (ms *mediaStoreServices) DescribeContainer(containerName string) (*mediastore.DescribeContainerOutput,error) {
-	return ms.MS.DescribeContainer(&mediastore.DescribeContainerInput{ContainerName: aws.String(containerName)})
+	return ms.MS.DescribeContainer(ctx, &mediastore.DescribeContainerInput{ContainerName: aws.String(containerName)})
 }

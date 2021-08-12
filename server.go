@@ -2,21 +2,21 @@ package main
 
 import (
 	"aws-golang-proto/services"
-	"aws-golang-proto/utils"
+	"context"
 	"log"
+
+	"github.com/aws/aws-sdk-go-v2/config"
 )
 
 func main() {
-	utils.LoadEnv()
-
-	// cfg,err := config.LoadDefaultConfig(context.TODO(),config.WithSharedConfigProfile("default"))	// loads from ~/.aws/credentials
+	cfg,err := config.LoadDefaultConfig(context.TODO(),config.WithSharedConfigProfile("default"))	// loads from ~/.aws/credentials
 	
-	// if err != nil {
-	// 	log.Fatal("Failed to load aws configuration")
-	// }
+	if err != nil {
+		log.Fatal("Failed to load aws configuration")
+	}
 
 	// mlService := services.NewMediaLiveService(cfg)
-	msService := services.NewMediaStoreService()
+	msService := services.NewMediaStoreService(cfg)
 
 	container, err := msService.DescribeContainer("ProgrammaticContainer")
 
