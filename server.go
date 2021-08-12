@@ -2,21 +2,29 @@ package main
 
 import (
 	"aws-golang-proto/services"
-	"context"
+	"aws-golang-proto/utils"
 	"log"
-
-	"github.com/aws/aws-sdk-go-v2/config"
 )
 
 func main() {
+	utils.LoadEnv()
 
-	cfg,err := config.LoadDefaultConfig(context.TODO(),config.WithSharedConfigProfile("default"))	// loads from ~/.aws/credentials
+	// cfg,err := config.LoadDefaultConfig(context.TODO(),config.WithSharedConfigProfile("default"))	// loads from ~/.aws/credentials
 	
-	if err != nil {
-		log.Fatal("Failed to load aws configuration")
-	}
+	// if err != nil {
+	// 	log.Fatal("Failed to load aws configuration")
+	// }
 
-	mlService := services.NewMediaLiveService(cfg)
+	// mlService := services.NewMediaLiveService(cfg)
+	msService := services.NewMediaStoreService()
+
+	container, err := msService.DescribeContainer("ProgrammaticContainer")
+
+	if err != nil{
+		log.Println("Error fetching container info : ",err)
+	} else {
+		log.Println(*(container.Container.Endpoint))
+	}
 	
 	// ch,err := ML.ListChannels(context.Background(),&medialive.ListChannelsInput{})
 	// if err != nil {
@@ -31,20 +39,20 @@ func main() {
 	// }
 
 	
-	isg , _ := mlService.ListInputSecurityGroups()
-	var inputParams = services.IMediaLiveInput{
-		Name: "DynamicInputFromApp",
-		Type: "RTMP_PUSH",
-		InputSecurityGroupsId: []*string{isg.InputSecurityGroups[0].Id},
-		DestinationUrl: []string{"DynamicInpA/inpA","DynamicInpB/inpB"},
-	}	
-	createdInput, err := mlService.CreateInput(inputParams)
+	// isg , _ := mlService.ListInputSecurityGroups()
+	// var inputParams = services.IMediaLiveInput{
+	// 	Name: "DynamicInputFromApp",
+	// 	Type: "RTMP_PUSH",
+	// 	InputSecurityGroupsId: []*string{isg.InputSecurityGroups[0].Id},
+	// 	DestinationUrl: []string{"DynamicInpA/inpA","DynamicInpB/inpB"},
+	// }	
+	// createdInput, err := mlService.CreateInput(inputParams)
 
-	if err != nil{
-		log.Fatal("Failed to create input, Error: ",err)
-	}
+	// if err != nil{
+	// 	log.Fatal("Failed to create input, Error: ",err)
+	// }
 	
-	log.Println("Created input = ", *(createdInput.Input.Id))
+	// log.Println("Created input = ", *(createdInput.Input.Id))
 
 	// deletedInput, err := mlService.DeleteInput(*(createdInput.Input.Id))
 	// if err != nil{
