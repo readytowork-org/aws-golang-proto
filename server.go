@@ -41,7 +41,25 @@ func main() {
 		log.Fatal("Failed to fetch the detail of the channel, error : ",err)
 	} else {
 		log.Printf("Channel Info :\n\t\t\tName : %v\n\t\t\tState : %v",*(ch.Name), ch.State)
+		if ch.State == "IDLE"{
+			startingChannel, err := mlService.StartChannel(*(ch.Id))
+			if err != nil {
+				log.Fatal("Failed to start the channel, error : ",err)
+			} else {
+				log.Println("Channel State : ",startingChannel.State)
+			}
+		}
 	}
+
+	// Stop Channel
+	stoppingChannel, err := mlService.StopChannel(*ch.Id)
+	if err != nil {
+		log.Fatal("Failed to stop the channel, error : ",err)
+	} else {
+		log.Println("Channel State : ",stoppingChannel.State)
+	}
+
+
 	// ch,err := ML.ListChannels(context.Background(),&medialive.ListChannelsInput{})
 	// if err != nil {
 	// 	log.Fatal("Failed to fetch the list of channels")

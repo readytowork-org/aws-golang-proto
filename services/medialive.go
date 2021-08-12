@@ -41,6 +41,7 @@ type MediaLiveServices interface{
 	// channels
 	CreateChannel()(*medialive.CreateChannelOutput,error)
 	StartChannel(channelId string) (*medialive.StartChannelOutput,error)
+	StopChannel(channelId string) (*medialive.StopChannelOutput,error)
 	DeleteChannel(channelId string) (*medialive.DeleteChannelOutput,error)
 	DescribeChannel(channelId string) (*medialive.DescribeChannelOutput,error)
 }
@@ -219,6 +220,12 @@ func (mlClient *mediaLiveServices) CreateChannel() (*medialive.CreateChannelOutp
 
 func (mlClient *mediaLiveServices) StartChannel(channelId string) (*medialive.StartChannelOutput,error){
 	return mlClient.ML.StartChannel(ctx,&medialive.StartChannelInput{
+		ChannelId: aws.String(channelId),
+	})
+}
+
+func (mlClient *mediaLiveServices) StopChannel(channelId string) (*medialive.StopChannelOutput,error){
+	return mlClient.ML.StopChannel(ctx,&medialive.StopChannelInput{
 		ChannelId: aws.String(channelId),
 	})
 }
