@@ -26,23 +26,23 @@ func main() {
 	// 	log.Println(*(container.Container.Endpoint))
 	// }
 
-	// ch,err := mlService.CreateChannel()
+	newChannel,err := mlService.CreateChannel()
 	
-	// if err != nil {
-	// 	log.Fatal("Failed to create channel, error : ",err)
-	// } else {
-	// 	log.Println("Channel created : ",ch.Channel.Name)
-	// }
+	if err != nil {
+		log.Fatal("Failed to create channel, error : ",err)
+	} else {
+		log.Println("Channel created : ",newChannel.Channel.Name)
+	}
 
 
-	ch,err := mlService.DescribeChannel("8523755")//*(ch.Channel.Id))
+	channelDescription,err := mlService.DescribeChannel(*(newChannel.Channel.Id))
 	
 	if err != nil {
 		log.Fatal("Failed to fetch the detail of the channel, error : ",err)
 	} else {
-		log.Printf("Channel Info :\n\t\t\tName : %v\n\t\t\tState : %v",*(ch.Name), ch.State)
-		if ch.State == "IDLE"{
-			startingChannel, err := mlService.StartChannel(*(ch.Id))
+		log.Printf("Channel Info :\n\t\t\tName : %v\n\t\t\tState : %v",*(channelDescription.Name), channelDescription.State)
+		if channelDescription.State == "IDLE"{
+			startingChannel, err := mlService.StartChannel(*(channelDescription.Id))
 			if err != nil {
 				log.Fatal("Failed to start the channel, error : ",err)
 			} else {
@@ -52,12 +52,12 @@ func main() {
 	}
 
 	// Stop Channel
-	stoppingChannel, err := mlService.StopChannel(*ch.Id)
-	if err != nil {
-		log.Fatal("Failed to stop the channel, error : ",err)
-	} else {
-		log.Println("Channel State : ",stoppingChannel.State)
-	}
+	// stoppingChannel, err := mlService.StopChannel(*channelDescription.Id)
+	// if err != nil {
+	// 	log.Fatal("Failed to stop the channel, error : ",err)
+	// } else {
+	// 	log.Println("Channel State : ",stoppingChannel.State)
+	// }
 
 
 	// ch,err := ML.ListChannels(context.Background(),&medialive.ListChannelsInput{})

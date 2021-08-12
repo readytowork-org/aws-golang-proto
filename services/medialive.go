@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/medialive"
@@ -110,7 +109,7 @@ func (mlClient *mediaLiveServices) CreateChannel() (*medialive.CreateChannelOutp
 	protocol := "mediastoressl"
 	host := "lkyosq2jse5osj.data.mediastore.ap-northeast-1.amazonaws.com";
 	folderName := "GolangFolder";
-	fileName := time.Now().Format(time.RFC3339Nano)
+	fileName := uuid.New().String()
 	firstDestinationUrl := fmt.Sprintf("%v://%v/%v/%v",protocol,host,folderName,fileName)
 	secondDestinationUrl := fmt.Sprintf("%v://%v/%v/%v_redundant",protocol,host,folderName,fileName)
 	outputDestination := []types.OutputDestination{
