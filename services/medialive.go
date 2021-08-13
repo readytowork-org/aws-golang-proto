@@ -29,6 +29,7 @@ type MediaLiveServices interface{
 	// inputs
 	CreateInput(params model.Input)
 	DeleteInput(inputId string) (*medialive.DeleteInputOutput,error)
+	DescribeInput(inputId string) (*medialive.DescribeInputOutput,error)
 	// input security groups
 	ListInputSecurityGroups() (*medialive.ListInputSecurityGroupsOutput,error)
 	// channels
@@ -67,6 +68,13 @@ func (mlClient *mediaLiveServices) CreateInput(params model.Input) (*medialive.C
 func (mlClient *mediaLiveServices) DeleteInput(inputId string) (*medialive.DeleteInputOutput,error){
 	return mlClient.ML.DeleteInput(ctx,&medialive.DeleteInputInput{InputId: aws.String(inputId)})
 }
+
+func (mlClient *mediaLiveServices) DescribeInput(inputId string) (*medialive.DescribeInputOutput,error){
+	return mlClient.ML.DescribeInput(ctx,&medialive.DescribeInputInput{
+		InputId: aws.String(inputId),
+	})
+}
+
 
 // input security groups
 func (mlClient *mediaLiveServices) ListInputSecurityGroups() (*medialive.ListInputSecurityGroupsOutput,error){

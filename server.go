@@ -1,12 +1,16 @@
 package main
 
 import (
+	"aws-golang-proto/helper"
 	"aws-golang-proto/model"
 	"aws-golang-proto/services"
 	"context"
 	"log"
+	"net/http"
 
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/medialive/types"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -19,86 +23,175 @@ func main() {
 	mlService := services.NewMediaLiveService(cfg)
 	msService := services.NewMediaStoreService(cfg)
 
-	container, err := msService.DescribeContainer("ProgrammaticContainer")
+	httpRouter := gin.Default()
+	httpRouter.GET("/ping",func(c *gin.Context) {
+		c.JSON(http.StatusOK,gin.H{
+			"message":"pong",
+		})
+	})
 
-	if err != nil{
-		log.Println("Error fetching container info : ",err)
-	} else {
-		log.Println(*(container.Container.Endpoint))
+	httpRouter.GET("/startStream", func(c *gin.Context) {
+		container, err := msService.DescribeContainer("ProgrammaticContainer") // TODO : container name should come from .env file
 
-		isg , _ := mlService.ListInputSecurityGroups()
-		var inputParams = model.Input{
-			Name: "DynamicInputFromApp",
-			Type: "RTMP_PUSH",
-			InputSecurityGroupsId: []*string{isg.InputSecurityGroups[0].Id},
-			DestinationUrl: []string{"DynamicInpA/inpA","DynamicInpB/inpB"},
-		}	
-		createdInput, err := mlService.CreateInput(inputParams)
 		if err != nil{
-			log.Fatal("Failed to create input, Error: ",err)
+			log.Println("Error fetching container info : ",err)
 		} else {
-			log.Println("Created input = ", *(createdInput.Input.Id))
-		
-			newChannel,err := mlService.CreateChannel("Golang Channel","STANDARD",*createdInput.Input,*container.Container)
-
-			if err != nil {
-				log.Fatal("Failed to create channel, error : ",err)
+			log.Println(*(container.Container.Endpoint))
+	
+			isg , _ := mlService.ListInputSecurityGroups()	// In Production: Create a security group from console and security group id should come from .env
+			var inputParams = model.Input{
+				Name: "DynamicInputFromApp",
+				Type: "RTMP_PUSH",
+				InputSecurityGroupsId: []*string{isg.InputSecurityGroups[0].Id},
+				DestinationUrl: []string{"DynamicInpA/inpA","DynamicInpB/inpB"},
+			}	
+			createdInput, err := mlService.CreateInput(inputParams)
+			if err != nil{
+				log.Fatal("Failed to create input, Error: ",err)
 			} else {
-				log.Println("Channel created : ",newChannel.Channel.Name)
-			}
-		
-		
-			channelDescription,err := mlService.DescribeChannel(*(newChannel.Channel.Id))
+				log.Println("Created input = ", *(createdInput.Input.Id))
 			
-			if err != nil {
-				log.Fatal("Failed to fetch the detail of the channel, error : ",err)
-			} else {
-				log.Printf("Channel Info :\n\t\t\tName : %v\n\t\t\tState : %v",*(channelDescription.Name), channelDescription.State)
-				if channelDescription.State == "IDLE"{
-					startingChannel, err := mlService.StartChannel(*(channelDescription.Id))
-					if err != nil {
-						log.Fatal("Failed to start the channel, error : ",err)
-					} else {
-						log.Println("Channel State : ",startingChannel.State)
+				newChannel,err := mlService.CreateChannel("Golang Channel","STANDARD",*createdInput.Input,*container.Container)
+	
+				if err != nil {
+					log.Fatal("Failed to create channel, error : ",err)
+				} else {
+					log.Println("Channel created : ",newChannel.Channel.Name)
 
-						// TODO : Try to go live now, create a server starting the channel and returning the rtmp url
-					}
+					channelState := newChannel.Channel.State;
+
+					// fetch channel description every 5 seconds
+					clearInterval := helper.SetInterval(func() {
+						channelDescription,err := mlService.DescribeChannel(*(newChannel.Channel.Id))
+						if err != nil {
+							log.Fatal("Failed to fetch the detail of the channel, error : ",err)
+						} else {
+							// log.Printf("Channel Info :\n\t\t\tName : %v\n\t\t\tState : %v",*(channelDescription.Name), channelDescription.State)
+							log.Println("Desc, Channel State : ",channelDescription.State)
+							channelState = channelDescription.State;
+						}
+					},5 * 1000,true);
+
+					// run concurrent function that checks the channel state
+					// if the cahnnel is running clear the interval and respond the rtmp input url
+					go func () {
+						for {
+							if channelState == "CREATING" {
+								// log.Println("Channel is being created...")
+							} else if channelState == "IDLE" {
+								_ ,err := mlService.StartChannel(*newChannel.Channel.Id)
+								if err != nil {
+									log.Println("Error starting the channel...",err)
+								} else {
+									// log.Println("Channel is starting...")
+								}
+							} else if channelState == "STARTING" {
+								// log.Println("Channel is starting...")
+							} else if channelState == "RUNNING" {
+								clearInterval <- true;
+								log.Println("Channel is running...")
+								c.JSON(http.StatusOK,gin.H{
+									"channelID": newChannel.Channel.Id,
+									"inputID": createdInput.Input.Id,
+									"streamUrls": []types.InputDestination{
+										{
+											Url: createdInput.Input.Destinations[0].Url,
+										},
+										{
+											Url: createdInput.Input.Destinations[1].Url,
+										},
+									},
+								})
+								return												
+							}
+						}
+					}()
 				}
 			}
-		}		
+		}
+	})
+
+	httpRouter.GET("/streamInfo", func(c *gin.Context) {
+		channelID, ok := c.Params.Get("channelID")
+		if !ok {
+			c.JSON(http.StatusBadRequest,gin.H{
+				"message":"Channel id cannot be empty",
+			})
+		} 
+
+		inputID, ok := c.Params.Get("inputID")
+		if !ok {
+			c.JSON(http.StatusBadRequest,gin.H{
+				"message":"Input id cannot be empty",
+			})
+		} 
+
+		input, err := mlService.DescribeInput(inputID)
+		channel, err := mlService.DescribeChannel(channelID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{
+				"message":"Error getting channel information for the channel id provided",
+			})
+		} else {
+			c.JSON(http.StatusOK,gin.H{
+				"channelID": channel.Id,
+				"inputID": input.Id,
+				"streamUrls": []types.InputDestination{
+					{
+						Url: input.Destinations[0].Url,
+					},
+					{
+						Url: input.Destinations[1].Url,
+					},
+				},
+			})
+		}
+	})
+
+	httpRouter.GET("/stopStream", func(c *gin.Context) {
+		params := c.Params
 		
-	}
+		channelID, err := params.Get("channelID")
+		if err {
+			log.Println("ID of the Channel to be stopped & deleted not provided");
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message" : "ID of the Channel to be stopped & deleted not provided",
+			})
+		}
 
+		inputID, err := params.Get("inputID")
+		if err {
+			log.Println("ID of the Channel to be stopped & deleted not provided");
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message" : "ID of the Input to be deleted not provided",
+			})
+		}
 
+		// Stop Channel
+		stoppingChannel, error := mlService.StopChannel(channelID)
+		if error != nil {
+			log.Fatal("Failed to stop the channel, error : ",error)
+		} else {
+			log.Println("Channel State : ",stoppingChannel.State)
 
-	
+			// Delete Channel
+			deletedChannel, error := mlService.DeleteChannel(channelID);
+			if error != nil {
+				log.Fatal("Failed to delete the channel, error : ",error)
+			} else {
+				log.Println("Channel State : ",deletedChannel.State)
+			}
 
-	// Stop Channel
-	// stoppingChannel, err := mlService.StopChannel(*channelDescription.Id)
-	// if err != nil {
-	// 	log.Fatal("Failed to stop the channel, error : ",err)
-	// } else {
-	// 	log.Println("Channel State : ",stoppingChannel.State)
-	// }
+			// Delete Input
+			deletedInput, error := mlService.DeleteInput(inputID)
+			if error != nil{
+				log.Fatal("Failed to create input, Error: ",error)
+			}
 
+			log.Println("Deleted Input = ",deletedInput)
+			return
+		}
+	})
 
-	// ch,err := ML.ListChannels(context.Background(),&medialive.ListChannelsInput{})
-	// if err != nil {
-	// 	log.Fatal("Failed to fetch the list of channels")
-	// }
-
-	// var channels medialive.ListChannelsOutput
-	// channels.Channels = ch.Channels
-
-	// for _, channel := range(ch.Channels){
-	// 	log.Println(*(channel.Name))
-	// }
-
-	
-	// deletedInput, err := mlService.DeleteInput(*(createdInput.Input.Id))
-	// if err != nil{
-	// 	log.Fatal("Failed to create input, Error: ",err)
-	// }
-
-	// log.Println("Deleted Input = ",deletedInput)
+	httpRouter.Run(":8000")
 }
