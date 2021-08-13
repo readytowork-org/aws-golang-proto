@@ -1,6 +1,7 @@
 package main
 
 import (
+	"aws-golang-proto/model"
 	"aws-golang-proto/services"
 	"context"
 	"log"
@@ -16,40 +17,61 @@ func main() {
 	}
 
 	mlService := services.NewMediaLiveService(cfg)
-	// msService := services.NewMediaStoreService(cfg)
+	msService := services.NewMediaStoreService(cfg)
 
-	// container, err := msService.DescribeContainer("ProgrammaticContainer")
+	container, err := msService.DescribeContainer("ProgrammaticContainer")
 
-	// if err != nil{
-	// 	log.Println("Error fetching container info : ",err)
-	// } else {
-	// 	log.Println(*(container.Container.Endpoint))
-	// }
-
-	newChannel,err := mlService.CreateChannel()
-	
-	if err != nil {
-		log.Fatal("Failed to create channel, error : ",err)
+	if err != nil{
+		log.Println("Error fetching container info : ",err)
 	} else {
-		log.Println("Channel created : ",newChannel.Channel.Name)
-	}
+		log.Println(*(container.Container.Endpoint))
 
+		isg , _ := mlService.ListInputSecurityGroups()
+		var inputParams = model.Input{
+			Name: "DynamicInputFromApp",
+			Type: "RTMP_PUSH",
+			InputSecurityGroupsId: []*string{isg.InputSecurityGroups[0].Id},
+			DestinationUrl: []string{"DynamicInpA/inpA","DynamicInpB/inpB"},
+		}	
+		createdInput, err := mlService.CreateInput(inputParams)
+		if err != nil{
+			log.Fatal("Failed to create input, Error: ",err)
+		} else {
+			log.Println("Created input = ", *(createdInput.Input.Id))
+		
+			newChannel,err := mlService.CreateChannel("Golang Channel","STANDARD",*createdInput.Input,*container.Container)
 
-	channelDescription,err := mlService.DescribeChannel(*(newChannel.Channel.Id))
-	
-	if err != nil {
-		log.Fatal("Failed to fetch the detail of the channel, error : ",err)
-	} else {
-		log.Printf("Channel Info :\n\t\t\tName : %v\n\t\t\tState : %v",*(channelDescription.Name), channelDescription.State)
-		if channelDescription.State == "IDLE"{
-			startingChannel, err := mlService.StartChannel(*(channelDescription.Id))
 			if err != nil {
-				log.Fatal("Failed to start the channel, error : ",err)
+				log.Fatal("Failed to create channel, error : ",err)
 			} else {
-				log.Println("Channel State : ",startingChannel.State)
+				log.Println("Channel created : ",newChannel.Channel.Name)
 			}
-		}
+		
+		
+			channelDescription,err := mlService.DescribeChannel(*(newChannel.Channel.Id))
+			
+			if err != nil {
+				log.Fatal("Failed to fetch the detail of the channel, error : ",err)
+			} else {
+				log.Printf("Channel Info :\n\t\t\tName : %v\n\t\t\tState : %v",*(channelDescription.Name), channelDescription.State)
+				if channelDescription.State == "IDLE"{
+					startingChannel, err := mlService.StartChannel(*(channelDescription.Id))
+					if err != nil {
+						log.Fatal("Failed to start the channel, error : ",err)
+					} else {
+						log.Println("Channel State : ",startingChannel.State)
+
+						// TODO : Try to go live now, create a server starting the channel and returning the rtmp url
+					}
+				}
+			}
+		}		
+		
 	}
+
+
+
+	
 
 	// Stop Channel
 	// stoppingChannel, err := mlService.StopChannel(*channelDescription.Id)
@@ -73,21 +95,6 @@ func main() {
 	// }
 
 	
-	// isg , _ := mlService.ListInputSecurityGroups()
-	// var inputParams = services.IMediaLiveInput{
-	// 	Name: "DynamicInputFromApp",
-	// 	Type: "RTMP_PUSH",
-	// 	InputSecurityGroupsId: []*string{isg.InputSecurityGroups[0].Id},
-	// 	DestinationUrl: []string{"DynamicInpA/inpA","DynamicInpB/inpB"},
-	// }	
-	// createdInput, err := mlService.CreateInput(inputParams)
-
-	// if err != nil{
-	// 	log.Fatal("Failed to create input, Error: ",err)
-	// }
-	
-	// log.Println("Created input = ", *(createdInput.Input.Id))
-
 	// deletedInput, err := mlService.DeleteInput(*(createdInput.Input.Id))
 	// if err != nil{
 	// 	log.Fatal("Failed to create input, Error: ",err)
