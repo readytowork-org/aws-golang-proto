@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/aws/aws-sdk-go-v2/config"
+	ivsTypes "github.com/aws/aws-sdk-go-v2/service/ivs/types"
 	"github.com/aws/aws-sdk-go-v2/service/medialive/types"
 	"github.com/gin-gonic/gin"
 )
@@ -22,6 +23,7 @@ func main() {
 
 	mlService := services.NewMediaLiveService(cfg)
 	msService := services.NewMediaStoreService(cfg)
+	ivsService := services.NewInteractiveVideoService(cfg)
 
 	httpRouter := gin.Default()
 	httpRouter.GET("/ping",func(c *gin.Context) {
@@ -29,6 +31,82 @@ func main() {
 			"message":"pong",
 		})
 	})
+
+	// ------------------------		IVS BEGINS		---------------------------	//
+
+	httpRouter.POST("/createIVSChannel", func(c *gin.Context){
+		// streamName, ok := c.GetQuery("streamName")
+
+		var channelInp model.IVSChannelInput
+
+		c.ShouldBindJSON(&channelInp)
+			
+		channel, err := ivsService.CreateChannel(model.IVSChannel{
+			Name: channelInp.StreamName,
+			ChannelType: string(ivsTypes.ChannelTypeStandardChannelType),
+			EnableAuthorization: false,
+		})
+
+		if err != nil {
+			c.AbortWithError(http.StatusBadRequest,err)
+			return
+		}
+
+		// store channel arn in database and use uuid instead to uiniquly identify channels created
+		
+		c.JSON(http.StatusOK,gin.H{
+			"channelARN":&channel.Channel.Arn,
+			"urls": &channel.Channel.IngestEndpoint,
+		})
+	})
+
+	httpRouter.GET("/streamUrl", func(c *gin.Context){
+		channelARN, ok := c.GetQuery("channelARN")
+		if !ok {
+			c.JSON(http.StatusBadRequest,gin.H{
+				"message":"Channel ARN cannot be empty",
+			})
+			return
+		}
+
+		streamUrl, err := ivsService.GetPlaybackURL(channelARN)
+
+		if err != nil {
+			c.AbortWithError(http.StatusBadRequest,err)
+			return
+		}
+		
+		c.JSON(http.StatusOK,gin.H{
+			"streamUrl": streamUrl,
+		})
+	})
+
+	httpRouter.DELETE("/deleteIVSChannel", func(c *gin.Context){
+		channelARN, ok := c.GetQuery("channelARN")
+		if !ok {
+			c.JSON(http.StatusBadRequest,gin.H{
+				"message":"Channel ARN cannot be empty",
+			})
+		}
+
+		streamUrl, err := ivsService.DeleteChannel(channelARN)
+
+		if err != nil {
+			c.AbortWithError(http.StatusBadRequest,gin.Error{
+				Err: err,
+			})
+			return
+		}
+		
+		c.JSON(http.StatusOK,gin.H{
+			"streamUrl": streamUrl,
+		})
+	})
+	
+
+	// ------------------------		IVS ENDS		-----------------------------	//
+
+
 
 	httpRouter.GET("/startStream", func(c *gin.Context) {
 		container, err := msService.DescribeContainer("ProgrammaticContainer") // TODO : container name should come from .env file
