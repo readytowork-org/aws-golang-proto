@@ -75,6 +75,26 @@ func main() {
 		})
 	})
 
+	httpRouter.GET("/allLiveStreams", func(c *gin.Context){
+		nextPage, ok := c.GetQuery("nextToken")
+		nextToken := "" 
+
+		if ok {
+			nextToken = nextPage
+		}
+
+		liveStreams, err := ivsService.ListLiveChannels(nextToken)
+
+		if err != nil {
+			c.AbortWithError(http.StatusBadRequest,err)
+			return
+		}
+		
+		c.JSON(http.StatusOK,gin.H{
+			"liveStreams": liveStreams.Streams,
+		})
+	})	
+
 	httpRouter.GET("/streamUrl", func(c *gin.Context){
 		channelARN, ok := c.GetQuery("channelARN")
 		if !ok {
