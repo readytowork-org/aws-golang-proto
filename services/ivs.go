@@ -26,6 +26,7 @@ func NewInteractiveVideoService(config aws.Config) *ivsServices{
 
 
 // channel
+// creates a channel and an associated stream key
 func (ivsClient *ivsServices) CreateChannel(params model.IVSChannel) (*ivs.CreateChannelOutput, error) {
 
 	recConfig, err := ivsClient.IVS.GetRecordingConfiguration(ctx,&ivs.GetRecordingConfigurationInput{
@@ -37,13 +38,34 @@ func (ivsClient *ivsServices) CreateChannel(params model.IVSChannel) (*ivs.Creat
 	}
 
 	return ivsClient.IVS.CreateChannel(ctx,&ivs.CreateChannelInput{
-		Name: aws.String("ProgrammaticChannel"),
-		Authorized: false,
+		Name: aws.String(params.Name),
+		Authorized: params.EnableAuthorization,
 		LatencyMode: types.ChannelLatencyModeLowLatency,
-		Type: types.ChannelTypeStandardChannelType,
+		Type: types.ChannelType(params.ChannelType),
 		RecordingConfigurationArn: recConfig.RecordingConfiguration.Arn,
 	})
 }
+
+func (ivsClient *ivsServices) ListStreamKey(channelARN string) (*ivs.ListStreamKeysOutput, error) {
+	return ivsClient.IVS.ListStreamKeys(ctx,&ivs.ListStreamKeysInput{
+		ChannelArn: &channelARN,
+	})
+}
+
+// only one key can be associated with one channel, so before creating a stream key for a channel, delete existing key first
+func (ivsClient *ivsServices) CreateStreamKey(channelARN string) (*ivs.CreateStreamKeyOutput, error) {
+	log.Println("Channel ARN : ",channelARN)
+	return ivsClient.IVS.CreateStreamKey(ctx,&ivs.CreateStreamKeyInput{
+		ChannelArn: &channelARN,
+	})
+}
+
+func (ivsClient *ivsServices) GetStreamKey(streamKeyArn string) (*ivs.GetStreamKeyOutput, error) {
+	return ivsClient.IVS.GetStreamKey(ctx,&ivs.GetStreamKeyInput{
+		Arn: &streamKeyArn,
+	})
+}
+
 
 func (ivsClient *ivsServices) GetPlaybackURL(channelArn string) (string, error) {
 	channel, err := ivsClient.IVS.GetChannel(ctx,&ivs.GetChannelInput{

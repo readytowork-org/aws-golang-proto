@@ -35,8 +35,6 @@ func main() {
 	// ------------------------		IVS BEGINS		---------------------------	//
 
 	httpRouter.POST("/createIVSChannel", func(c *gin.Context){
-		// streamName, ok := c.GetQuery("streamName")
-
 		var channelInp model.IVSChannelInput
 
 		c.ShouldBindJSON(&channelInp)
@@ -52,11 +50,28 @@ func main() {
 			return
 		}
 
-		// store channel arn in database and use uuid instead to uiniquly identify channels created
-		
+		streamKeysList, err := ivsService.ListStreamKey(*channel.Channel.Arn)
+
+		if err != nil {
+			log.Println("Error getting list of stream keys\n ",err)
+			c.AbortWithError(http.StatusBadRequest,err)
+			return
+		}
+
+		streamKeyOut, err := ivsService.GetStreamKey(*streamKeysList.StreamKeys[0].Arn)
+
+		if err != nil {
+			log.Printf("Error getting stream key for arn %v \n %v",*streamKeysList.StreamKeys[0].Arn,err)
+			c.AbortWithError(http.StatusBadRequest,err)
+			return
+		}
+
+		// store channel arn in database and use uuid instead to uiniquly identify channels created		
 		c.JSON(http.StatusOK,gin.H{
 			"channelARN":&channel.Channel.Arn,
-			"urls": &channel.Channel.IngestEndpoint,
+			"ingetsUrl": &channel.Channel.IngestEndpoint,
+			"streamKeyARN": &streamKeyOut.StreamKey.Arn,
+			"streamKey": &streamKeyOut.StreamKey.Value,
 		})
 	})
 
