@@ -92,6 +92,7 @@ func main() {
 		
 		c.JSON(http.StatusOK,gin.H{
 			"liveStreams": liveStreams.Streams,
+			"nextToken": liveStreams.NextToken,
 		})
 	})	
 
