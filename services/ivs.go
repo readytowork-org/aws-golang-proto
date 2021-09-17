@@ -46,6 +46,14 @@ func (ivsClient *ivsServices) CreateChannel(params model.IVSChannel) (*ivs.Creat
 	})
 }
 
+func (ivsClient *ivsServices) ListLiveChannels(nextToken string) (*ivs.ListStreamsOutput, error) {
+	var listStreamInput ivs.ListStreamsInput
+	if nextToken != "" {
+		listStreamInput.NextToken = &nextToken
+	}
+	return ivsClient.IVS.ListStreams(ctx,&listStreamInput)
+}
+
 func (ivsClient *ivsServices) ListStreamKey(channelARN string) (*ivs.ListStreamKeysOutput, error) {
 	return ivsClient.IVS.ListStreamKeys(ctx,&ivs.ListStreamKeysInput{
 		ChannelArn: &channelARN,
