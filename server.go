@@ -78,6 +78,7 @@ func main() {
 	httpRouter.GET("/allLiveStreams", func(c *gin.Context){
 		nextPage, ok := c.GetQuery("nextToken")
 		nextToken := "" 
+		log.Println("Next Token : ",nextPage)
 
 		if ok {
 			nextToken = nextPage
@@ -125,7 +126,7 @@ func main() {
 			})
 		}
 
-		streamUrl, err := ivsService.DeleteChannel(channelARN)
+		_, err := ivsService.DeleteChannel(channelARN)
 
 		if err != nil {
 			c.AbortWithError(http.StatusBadRequest,gin.Error{
@@ -135,7 +136,7 @@ func main() {
 		}
 		
 		c.JSON(http.StatusOK,gin.H{
-			"streamUrl": streamUrl,
+			"messsage": "Channel successfully deleted",
 		})
 	})
 	
