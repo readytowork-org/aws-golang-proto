@@ -46,6 +46,12 @@ func (ivsClient *ivsServices) CreateChannel(params model.IVSChannel) (*ivs.Creat
 	})
 }
 
+func (ivsClient *ivsServices) GetStreamInfo(channelARN string) (*ivs.GetStreamOutput, error) {
+	return ivsClient.IVS.GetStream(ctx,&ivs.GetStreamInput{
+		ChannelArn: &channelARN,
+	})
+}
+
 func (ivsClient *ivsServices) StopStream(channelARN string) (*ivs.StopStreamOutput, error) {
 	return ivsClient.IVS.StopStream(ctx,&ivs.StopStreamInput{
 		ChannelArn: &channelARN,

@@ -148,7 +148,47 @@ func main() {
 			})
 		}
 
-		_, err := ivsService.DeleteChannel(channelARN)
+		streamInfo, err := ivsService.GetStreamInfo(channelARN)
+		
+		if err != nil {
+			// error means channel can be deleted immediately
+			_, err = ivsService.DeleteChannel(channelARN)
+		
+			if err != nil {
+				c.AbortWithError(http.StatusBadRequest,gin.Error{
+					Err: err,
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK,gin.H{
+				"messsage": "Channel successfully deleted",
+			})
+			return
+		}
+
+		if streamInfo.Stream.State == ivsTypes.StreamStateStreamLive {
+			log.Println("Stream State : ", streamInfo.Stream.State)
+			_, err := ivsService.StopStream(channelARN)
+
+			if err != nil {
+				// error means channel can be deleted immediately
+				_, err = ivsService.DeleteChannel(channelARN)
+		
+				if err != nil {
+					c.AbortWithError(http.StatusBadRequest,gin.Error{
+						Err: err,
+					})
+					return
+				}
+				c.JSON(http.StatusOK,gin.H{
+					"messsage": "Channel successfully deleted",
+				})
+				return
+			}
+		}
+
+		_, err = ivsService.DeleteChannel(channelARN)
 
 		if err != nil {
 			c.AbortWithError(http.StatusBadRequest,gin.Error{
