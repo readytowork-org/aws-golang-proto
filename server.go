@@ -75,6 +75,28 @@ func main() {
 		})
 	})
 
+	httpRouter.GET("/stopLiveStream",func(c *gin.Context){
+		channelARN, ok := c.GetQuery("channelARN")
+		if !ok {
+			c.JSON(http.StatusBadRequest,gin.H{
+				"message":"Channel ARN cannot be empty",
+			})
+		}
+
+		_, err := ivsService.StopStream(channelARN)
+
+		if err != nil {
+			c.AbortWithError(http.StatusBadRequest,gin.Error{
+				Err: err,
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK,gin.H{
+			"message": "Stream stopped successfully",
+		})
+	})
+
 	httpRouter.GET("/allLiveStreams", func(c *gin.Context){
 		nextPage, ok := c.GetQuery("nextToken")
 		nextToken := "" 
