@@ -5,8 +5,10 @@ import (
 	"aws-golang-proto/model"
 	"aws-golang-proto/services"
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	ivsTypes "github.com/aws/aws-sdk-go-v2/service/ivs/types"
@@ -24,6 +26,8 @@ func main() {
 	mlService := services.NewMediaLiveService(cfg)
 	msService := services.NewMediaStoreService(cfg)
 	ivsService := services.NewInteractiveVideoService(cfg)
+	s3Service := services.NewS3Service(cfg)
+	bucketName := "ivs-console-stream-archive"
 
 	httpRouter := gin.Default()
 	httpRouter.GET("/ping",func(c *gin.Context) {
@@ -33,6 +37,38 @@ func main() {
 	})
 
 	// ------------------------		IVS BEGINS		---------------------------	//
+
+
+	httpRouter.GET("/s3ObjectList", func(c *gin.Context){
+		obj, err := s3Service.GetObjList()
+
+		if err != nil {
+			c.AbortWithError(http.StatusBadRequest,err)
+			return
+		}
+
+		type recording struct {
+			name string
+			url string
+		}
+
+		var recordedStreams []recording;
+		for i:=0; i<len(obj.Contents); i++ {
+			objKey := *obj.Contents[i].Key;
+			if strings.Contains(objKey,"media/hls/master") {
+				channelId := strings.Split(objKey,"/")[3]
+				recordUrl := fmt.Sprintf("https://%v.s3.us-west-2.amazonaws.com/%v",bucketName,objKey)
+				recordedStreams = append(recordedStreams, recording{
+					name: channelId,
+					url: recordUrl,
+				})
+			}
+		}
+
+		log.Println(recordedStreams)
+
+		c.JSON(http.StatusOK,recordedStreams)
+	})	
 
 	httpRouter.POST("/createIVSChannel", func(c *gin.Context){
 		var channelInp model.IVSChannelInput
