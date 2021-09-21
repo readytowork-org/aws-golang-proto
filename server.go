@@ -18,6 +18,11 @@ import (
 )
 
 func main() {
+	// place the configurations in ~/.aws/credentials as
+	// [default]
+	// aws_access_key_id = XXXXXXXXXXXX
+	// aws_secret_access_key = XXXXXX/XXXXXXXX
+
 	cfg,err := config.LoadDefaultConfig(context.TODO(),config.WithSharedConfigProfile("default"))	// loads from ~/.aws/credentials
 	
 	if err != nil {
@@ -45,7 +50,7 @@ func main() {
 		// so the channelId for stream needs to be saved in database
 		// later this channelId will be used to fetch the object from s3 (may be triggered while closing the stream)
 		// and make entries in database storing the url to s3 object that can be accessed later
-		obj, err := s3Service.GetObjList()
+		obj, err := s3Service.GetObjList(bucketName)
 
 		if err != nil {
 			c.AbortWithError(http.StatusBadRequest,err)

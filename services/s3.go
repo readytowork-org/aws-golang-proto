@@ -6,6 +6,8 @@ import (
 	// "aws-golang-proto/model"
 	// "log"
 
+	"fmt"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 
@@ -26,11 +28,14 @@ func NewS3Service(config aws.Config) *s3Services{
 }
 
 
-func (s3Client *s3Services) GetObjList() (*s3.ListObjectsV2Output,error) {
-	// TODO: confirm how the user account id is used
-	// which user account id is used
+func (s3Client *s3Services) GetObjList(bucketName string) (*s3.ListObjectsV2Output,error) {
+	// accountId is the id of the root user (this is same for all other IAM users as well)
+	// accountId can be extracted from aws-cli with following command
+	// `aws sts get-caller-identity --query Account --output text`
+	// should be stored in .env file
+	accountId := "876923632685"
 	return s3Client.S3.ListObjectsV2(ctx,&s3.ListObjectsV2Input{
-		Bucket: aws.String("ivs-console-stream-archive"),
-		Prefix: aws.String("ivs/v1/876923632685"), // ivs/v1/<aws user account id>
+		Bucket: aws.String(bucketName),
+		Prefix: aws.String(fmt.Sprintf("ivs/v1/%v",accountId)), // ivs/v1/<aws user account id>
 	})
 }
