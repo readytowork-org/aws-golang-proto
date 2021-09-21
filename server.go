@@ -57,7 +57,7 @@ func main() {
 			objKey := *obj.Contents[i].Key;
 			if strings.Contains(objKey,"media/hls/master") {
 				channelId := strings.Split(objKey,"/")[3]
-				recordUrl := fmt.Sprintf("https://%v.s3.%v.amazonaws.com/%v",endpoints.UsWest2RegionID, bucketName,objKey)
+				recordUrl := fmt.Sprintf("https://%v.s3.%v.amazonaws.com/%v",bucketName,endpoints.UsWest2RegionID,objKey)
 				recordedStreams = append(recordedStreams, map[string]string{
 					"name":channelId,
 					"url":recordUrl,
