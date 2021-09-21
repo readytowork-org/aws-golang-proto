@@ -27,6 +27,8 @@ func NewS3Service(config aws.Config) *s3Services{
 
 
 func (s3Client *s3Services) GetObjList() (*s3.ListObjectsV2Output,error) {
+	// TODO: confirm how the user account id is used
+	// which user account id is used
 	return s3Client.S3.ListObjectsV2(ctx,&s3.ListObjectsV2Input{
 		Bucket: aws.String("ivs-console-stream-archive"),
 		Prefix: aws.String("ivs/v1/876923632685"), // ivs/v1/<aws user account id>
