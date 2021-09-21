@@ -4,11 +4,12 @@ go 1.16
 
 require (
 	github.com/aws/aws-sdk-go v1.40.19
-	github.com/aws/aws-sdk-go-v2 v1.9.0
+	github.com/aws/aws-sdk-go-v2 v1.9.1
 	github.com/aws/aws-sdk-go-v2/config v1.6.0
 	github.com/aws/aws-sdk-go-v2/service/ivs v1.7.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/medialive v1.8.0
 	github.com/aws/aws-sdk-go-v2/service/mediastore v1.3.2
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.16.0 // indirect
 	github.com/gin-gonic/gin v1.7.3 // indirect
 	github.com/go-playground/validator/v10 v10.9.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect

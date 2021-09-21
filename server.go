@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	ivsTypes "github.com/aws/aws-sdk-go-v2/service/ivs/types"
 	"github.com/aws/aws-sdk-go-v2/service/medialive/types"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/gin-gonic/gin"
 )
 
@@ -40,6 +41,10 @@ func main() {
 
 
 	httpRouter.GET("/s3ObjectList", func(c *gin.Context){
+		// while channel is created, we assume there is a recording for it saved in s3
+		// so the channelId for stream needs to be saved in database
+		// later this channelId will be used to fetch the object from s3 (may be triggered while closing the stream)
+		// and make entries in database storing the url to s3 object that can be accessed later
 		obj, err := s3Service.GetObjList()
 
 		if err != nil {
@@ -47,26 +52,20 @@ func main() {
 			return
 		}
 
-		type recording struct {
-			name string
-			url string
-		}
-
-		var recordedStreams []recording;
+		var recordedStreams []interface{};
 		for i:=0; i<len(obj.Contents); i++ {
 			objKey := *obj.Contents[i].Key;
 			if strings.Contains(objKey,"media/hls/master") {
 				channelId := strings.Split(objKey,"/")[3]
-				recordUrl := fmt.Sprintf("https://%v.s3.us-west-2.amazonaws.com/%v",bucketName,objKey)
-				recordedStreams = append(recordedStreams, recording{
-					name: channelId,
-					url: recordUrl,
+				recordUrl := fmt.Sprintf("https://%v.s3.%v.amazonaws.com/%v",endpoints.UsWest2RegionID, bucketName,objKey)
+				recordedStreams = append(recordedStreams, map[string]string{
+					"name":channelId,
+					"url":recordUrl,
 				})
 			}
 		}
 
-		log.Println(recordedStreams)
-
+		// we may need to use pagination later
 		c.JSON(http.StatusOK,recordedStreams)
 	})	
 
