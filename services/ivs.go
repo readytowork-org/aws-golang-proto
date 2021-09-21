@@ -30,7 +30,7 @@ func NewInteractiveVideoService(config aws.Config) *ivsServices{
 func (ivsClient *ivsServices) CreateChannel(params model.IVSChannel) (*ivs.CreateChannelOutput, error) {
 
 	recConfig, err := ivsClient.IVS.GetRecordingConfiguration(ctx,&ivs.GetRecordingConfigurationInput{
-		Arn: aws.String("arn:aws:ivs:us-west-2:876923632685:recording-configuration/djZinlTn6F38"),
+		Arn: aws.String(params.RecordingConfigurationArn),
 	})
 
 	if err != nil {

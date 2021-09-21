@@ -13,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	ivsTypes "github.com/aws/aws-sdk-go-v2/service/ivs/types"
 	"github.com/aws/aws-sdk-go-v2/service/medialive/types"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/gin-gonic/gin"
 )
 
@@ -33,7 +32,17 @@ func main() {
 	msService := services.NewMediaStoreService(cfg)
 	ivsService := services.NewInteractiveVideoService(cfg)
 	s3Service := services.NewS3Service(cfg)
-	bucketName := "ivs-console-stream-archive"
+
+	//  ------------ ivs-console-stream-archive -------------
+	// recordingConfigArn := "arn:aws:ivs:us-west-2:876923632685:recording-configuration/djZinlTn6F38"
+	// bucketName := "ivs-console-stream-archive"
+	// cloudDistributionDomainName := "https://d1grxj62afid38.cloudfront.net"
+
+	// -------------- consolebucket101 ------------------
+	recordingConfigArn := "arn:aws:ivs:us-west-2:876923632685:recording-configuration/jc6zr3EOkRi2"
+	bucketName := "consolebucket101"
+	cloudDistributionDomainName := "https://d2fh0bj73raye2.cloudfront.net"
+
 
 	httpRouter := gin.Default()
 	httpRouter.GET("/ping",func(c *gin.Context) {
@@ -62,7 +71,7 @@ func main() {
 			objKey := *obj.Contents[i].Key;
 			if strings.Contains(objKey,"media/hls/master") {
 				channelId := strings.Split(objKey,"/")[3]
-				recordUrl := fmt.Sprintf("https://%v.s3.%v.amazonaws.com/%v",bucketName,endpoints.UsWest2RegionID,objKey)
+				recordUrl := fmt.Sprintf("%v/%v",cloudDistributionDomainName,objKey)
 				recordedStreams = append(recordedStreams, map[string]string{
 					"name":channelId,
 					"url":recordUrl,
@@ -83,6 +92,7 @@ func main() {
 			Name: channelInp.StreamName,
 			ChannelType: string(ivsTypes.ChannelTypeStandardChannelType),
 			EnableAuthorization: false,
+			RecordingConfigurationArn: recordingConfigArn,
 		})
 
 		if err != nil {
