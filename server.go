@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	ivsTypes "github.com/aws/aws-sdk-go-v2/service/ivs/types"
@@ -50,6 +51,53 @@ func main() {
 			"message":"pong",
 		})
 	})
+
+	// ------------------------ Endpoint For AWS EventBridge Starts ------------------- //
+	httpRouter.POST("/ivsEvents",func (c *gin.Context){
+		type StreamEventData struct {
+			Version int64 `json:"version"`;
+			ID string `json:"id"`;
+			DetailType string `json:"detail-type"`;
+			Source string `json:"source"`;
+			Account string `json:"account"`;
+			Time time.Time `json:"time"`;
+			Region string `json:"region"`;
+			Resources []string `json:"resources"`;
+			Detail interface{} `json:"detail"`;
+		}
+
+		/**
+			DetailType
+				- IVS Stream State Change
+						- Stream Start
+						- Stream End
+						- Stream Failure
+				- IVS Stream Health Change
+						- Starvation Start
+						- Starvation End
+				- IVS Limit Breach
+						- Ingest Bitrate
+						- Ingest Resolution
+						- Concurrent Broadcasts
+						- Concurrent Viewers
+				- IVS Recording State Change
+						- Recording Start
+						- Recording End	(Use this event to delete resources i.e. channel in case streamer didn't stop stream and closed the app either intentionally or unintentionally)
+						- Recording Start Failure
+						- Recording End Failure
+		*/
+
+		var eventData StreamEventData;
+
+		c.ShouldBindJSON(&eventData);
+
+		log.Println(eventData)
+
+		c.JSON(http.StatusNoContent,nil)
+	})
+
+	// ------------------------ Endpoint For AWS EventBridge Ends ------------------- //
+	
 
 	// ------------------------		IVS BEGINS		---------------------------	//
 
